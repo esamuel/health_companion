@@ -1,71 +1,129 @@
 import 'package:flutter/material.dart';
+import 'settings_screen.dart';
+import 'ai_chat_screen.dart';
+import 'health_tracking_screen.dart';
+import 'activity_tracker_screen.dart';
+import 'fasting_timer_screen.dart';
+import 'meal_planner_screen.dart';
+import 'medication_management_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
+  final Function(bool) onThemeChanged;
+
+  DashboardScreen({required this.onThemeChanged});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dashboard'),
+        title: Text('Health Companion'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            _buildCard(context, 'Weight & BMI', [
-              'Weight: 75 kg',
-              'BMI: 23.4',
-            ]),
-            SizedBox(height: 16),
-            _buildCard(context, 'Blood Pressure', [
-              '120/80 mmHg',
-            ]),
-            SizedBox(height: 16),
-            _buildCard(context, 'Heart Rate', [
-              '75 BPM',
-            ]),
-            SizedBox(height: 16),
-            _buildCard(context, 'Blood Glucose Level', [
-              '95 mg/dL',
-            ]),
-            SizedBox(height: 16),
-            _buildCard(context, 'Hydration Level', [
-              '6 Glasses',
-            ]),
-            SizedBox(height: 16),
-            _buildCard(context, 'Sleep Duration', [
-              '7 hours',
-            ]),
-            SizedBox(height: 16),
-            _buildCard(context, 'Activity Level', [
-              'Steps Taken: 5000',
-              'Calories Burned: 200 kcal',
-            ]),
-          ],
-        ),
+      body: GridView.count(
+        crossAxisCount: 2,
+        padding: EdgeInsets.all(16.0),
+        mainAxisSpacing: 16.0,
+        crossAxisSpacing: 16.0,
+        children: [
+          _buildDashboardItem(
+            context,
+            'AI Chat',
+            Icons.chat,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => AIChatScreen()),
+            ),
+          ),
+          _buildDashboardItem(
+            context,
+            'Health Tracking',
+            Icons.favorite,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => HealthTrackingScreen()),
+            ),
+          ),
+          _buildDashboardItem(
+            context,
+            'Activity Tracker',
+            Icons.directions_run,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ActivityTrackerScreen()),
+            ),
+          ),
+          _buildDashboardItem(
+            context,
+            'Fasting Timer',
+            Icons.timer,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FastingTimerScreen()),
+            ),
+          ),
+          _buildDashboardItem(
+            context,
+            'Meal Planner',
+            Icons.restaurant_menu,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => MealPlannerScreen()),
+            ),
+          ),
+          _buildDashboardItem(
+            context,
+            'Medication',
+            Icons.medical_services,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => MedicationManagementScreen()),
+            ),
+          ),
+          _buildDashboardItem(
+            context,
+            'Profile',
+            Icons.person,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
+            ),
+          ),
+          _buildDashboardItem(
+            context,
+            'Settings',
+            Icons.settings,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SettingsScreen(onThemeChanged: onThemeChanged),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCard(BuildContext context, String title, List<String> content) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+  Widget _buildDashboardItem(
+    BuildContext context,
+    String title,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      child: Card(
+        elevation: 4,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(icon, size: 48, color: Theme.of(context).primaryColor),
+            SizedBox(height: 8),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 8),
-            ...content.map((item) => Text(
-                  item,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                )),
           ],
         ),
       ),
