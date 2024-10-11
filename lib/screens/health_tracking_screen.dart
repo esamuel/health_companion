@@ -1,8 +1,8 @@
-// screens/health_tracking_screen.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class HealthTrackingScreen extends StatefulWidget {
   @override
@@ -13,19 +13,76 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _valueController = TextEditingController();
 
+  List<Map<String, dynamic>> healthMetrics = [];
+
   Future<void> _saveMetrics() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('healthMetrics', jsonEncode(healthMetrics));
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> serializableMetrics = healthMetrics.map((metric) {
+        return {
+          'name': metric['name'],
+          'value': metric['value'],
+          'icon': metric['icon'].toString(),
+        };
+      }).toList();
+      await prefs.setString('healthMetrics', jsonEncode(serializableMetrics));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error saving metrics: $e');
+      }
+      // You might want to show an error message to the user here
+    }
   }
 
   Future<void> _loadMetrics() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? metricsString = prefs.getString('healthMetrics');
-    if (metricsString != null) {
-      setState(() {
-        healthMetrics.clear();
-        healthMetrics.addAll(List<Map<String, dynamic>>.from(jsonDecode(metricsString)));
-      });
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? metricsString = prefs.getString('healthMetrics');
+      if (metricsString != null) {
+        final List<dynamic> decodedMetrics = jsonDecode(metricsString);
+        setState(() {
+          healthMetrics = decodedMetrics.map((metric) {
+            return {
+              'name': metric['name'],
+              'value': metric['value'],
+              'icon': _getIconFromString(metric['icon']),
+            };
+          }).toList();
+        });
+      } else {
+        _initializeDefaultMetrics();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading metrics: $e');
+      }
+      _initializeDefaultMetrics();
+    }
+  }
+
+  void _initializeDefaultMetrics() {
+    setState(() {
+      healthMetrics = [
+        {'name': 'Blood Pressure', 'value': '120/80 mmHg', 'icon': Icons.favorite},
+        {'name': 'Glucose Level', 'value': '95 mg/dL', 'icon': Icons.bloodtype},
+        {'name': 'Heart Rate', 'value': '72 BPM', 'icon': Icons.monitor_heart},
+        {'name': 'Weight', 'value': '75 kg', 'icon': Icons.fitness_center},
+      ];
+    });
+  }
+
+  IconData _getIconFromString(String iconString) {
+    switch (iconString) {
+      case 'IconData(U+0E87D)':
+        return Icons.favorite;
+      case 'IconData(U+0E95F)':
+        return Icons.bloodtype;
+      case 'IconData(U+0F0374)':
+        return Icons.monitor_heart;
+      case 'IconData(U+0E328)':
+        return Icons.fitness_center;
+      default:
+        return Icons.device_thermostat;
     }
   }
 
@@ -63,15 +120,15 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> {
             child: Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() {
                 healthMetrics.add({
                   'name': _nameController.text,
                   'value': _valueController.text,
                   'icon': Icons.device_thermostat,
                 });
-                _saveMetrics();
               });
+              await _saveMetrics();
               Navigator.of(context).pop();
             },
             child: Text('Add'),
@@ -109,15 +166,15 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> {
             child: Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() {
                 healthMetrics[index] = {
                   'name': _nameController.text,
                   'value': _valueController.text,
                   'icon': healthMetrics[index]['icon'],
                 };
-                _saveMetrics();
               });
+              await _saveMetrics();
               Navigator.of(context).pop();
             },
             child: Text('Save'),
@@ -126,13 +183,6 @@ class _HealthTrackingScreenState extends State<HealthTrackingScreen> {
       ),
     );
   }
-
-  final List<Map<String, dynamic>> healthMetrics = [
-    {'name': 'Blood Pressure', 'value': '120/80 mmHg', 'icon': Icons.favorite},
-    {'name': 'Glucose Level', 'value': '95 mg/dL', 'icon': Icons.bloodtype},
-    {'name': 'Heart Rate', 'value': '72 BPM', 'icon': Icons.monitor_heart},
-    {'name': 'Weight', 'value': '75 kg', 'icon': Icons.fitness_center},
-  ];
 
   @override
   Widget build(BuildContext context) {

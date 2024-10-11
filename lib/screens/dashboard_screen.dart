@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart' hide Text;
 import 'settings_screen.dart';
 import 'ai_chat_screen.dart';
-import 'health_tracking_screen.dart';  // Update this line
+import 'health_tracking_screen.dart' as health_tracking;
 import 'activity_tracker_screen.dart';
 import 'fasting_timer_screen.dart';
 import 'meal_planner_screen.dart';
 import 'medication_management_screen.dart';
 import 'profile_screen.dart';
-
-// Remove this line as it's causing the error
-// import 'package:your_app_name/screens/health_tracking_screen.dart';
+import 'package:health_companion/screens/health_tracking_screen.dart';
 
 // Use Flutter's Text widget explicitly
 import 'package:flutter/widgets.dart' show Text;
@@ -82,7 +80,8 @@ class DashboardScreen extends StatelessWidget {
             Icons.medical_services,
             () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => MedicationManagementScreen()),
+              MaterialPageRoute(
+                  builder: (context) => MedicationManagementScreen()),
             ),
           ),
           _buildDashboardItem(
@@ -101,7 +100,8 @@ class DashboardScreen extends StatelessWidget {
             () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => SettingsScreen(onThemeChanged: onThemeChanged),
+                builder: (context) =>
+                    SettingsScreen(onThemeChanged: onThemeChanged),
               ),
             ),
           ),
