@@ -1,83 +1,158 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-class MedicationReminderScreen extends StatefulWidget {
-  const MedicationReminderScreen({super.key});
+class MedicationReminder {
+  final String name;
+  final String dosage;
+  final TimeOfDay timeToTake;
+  final TimeOfDay alertTime;
 
+  MedicationReminder({
+    required this.name,
+    required this.dosage,
+    required this.timeToTake,
+    required this.alertTime,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'dosage': dosage,
+    'timeToTake': '${timeToTake.hour}:${timeToTake.minute}',
+    'alertTime': '${alertTime.hour}:${alertTime.minute}',
+  };
+
+  static MedicationReminder fromJson(Map<String, dynamic> json) => MedicationReminder(
+    name: json['name'],
+    dosage: json['dosage'],
+    timeToTake: TimeOfDay(hour: int.parse(json['timeToTake'].split(':')[0]), minute: int.parse(json['timeToTake'].split(':')[1])),
+    alertTime: TimeOfDay(hour: int.parse(json['alertTime'].split(':')[0]), minute: int.parse(json['alertTime'].split(':')[1])),
+  );
+}
+
+class MedicationReminderScreen extends StatefulWidget {
   @override
   _MedicationReminderScreenState createState() => _MedicationReminderScreenState();
 }
 
 class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
-  List<Map<String, String>> medications = [];
-  TextEditingController nameController = TextEditingController();
-  TextEditingController dosageController = TextEditingController();
-  TextEditingController timeController = TextEditingController();
+  final List<MedicationReminder> _reminders = [];
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
-    _loadMedications();
+    _loadReminders();
   }
 
-  void _loadMedications() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      medications = (prefs.getStringList('medications') ?? [])
-          .map((item) => Map<String, String>.from(json.decode(item)))
-          .toList();
-    });
-  }
-
-  void _saveMedications() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> encodedMedications = medications
-        .map((item) => json.encode(item))
-        .toList();
-    await prefs.setStringList('medications', encodedMedications);
-  }
-
-  void _addMedication() {
-    if (nameController.text.isNotEmpty &&
-        dosageController.text.isNotEmpty &&
-        timeController.text.isNotEmpty) {
+  void _loadReminders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? remindersJson = prefs.getString('reminders');
+    if (remindersJson != null) {
       setState(() {
-        medications.add({
-          'name': nameController.text,
-          'dosage': dosageController.text,
-          'time': timeController.text,
-        });
-        _saveMedications();
-        _clearInputFields();
+        final List<dynamic> jsonDecoded = json.decode(remindersJson);
+        _reminders.clear();
+        _reminders.addAll(jsonDecoded.map((json) => MedicationReminder.fromJson(json as Map<String, dynamic>)));
       });
     }
   }
 
-  void _editMedication(int index) {
+  void _saveReminders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedData = json.encode(_reminders.map((reminder) => reminder.toJson()).toList());
+    await prefs.setString('reminders', encodedData);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Medication Reminders'),
+      ),
+      body: ListView.builder(
+        itemCount: _reminders.length,
+        itemBuilder: (context, index) {
+          final reminder = _reminders[index];
+          return ListTile(
+            title: Text(reminder.name),
+            subtitle: Text('${reminder.dosage} at ${reminder.timeToTake.format(context)}'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.edit),
+                  onPressed: () => _editReminder(index),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () => _deleteReminder(index),
+                ),
+                Text('Alert: ${reminder.alertTime.format(context)}'),
+              ],
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddReminderDialog,
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showAddReminderDialog() {
+    String name = '';
+    String dosage = '';
+    TimeOfDay timeToTake = TimeOfDay.now();
+    TimeOfDay alertTime = TimeOfDay.now();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        TextEditingController editNameController = TextEditingController(text: medications[index]['name']);
-        TextEditingController editDosageController = TextEditingController(text: medications[index]['dosage']);
-        TextEditingController editTimeController = TextEditingController(text: medications[index]['time']);
-
         return AlertDialog(
-          title: Text('Edit Medication'),
+          title: Text('Add Medication Reminder'),
           content: SingleChildScrollView(
             child: Column(
               children: [
                 TextField(
-                  controller: editNameController,
                   decoration: InputDecoration(labelText: 'Medication Name'),
+                  onChanged: (value) => name = value,
                 ),
                 TextField(
-                  controller: editDosageController,
                   decoration: InputDecoration(labelText: 'Dosage'),
+                  onChanged: (value) => dosage = value,
                 ),
-                TextField(
-                  controller: editTimeController,
-                  decoration: InputDecoration(labelText: 'Time'),
+                ListTile(
+                  title: Text('Time to Take'),
+                  subtitle: Text(timeToTake.format(context)),
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: timeToTake,
+                    );
+                    if (picked != null && picked != timeToTake) {
+                      setState(() {
+                        timeToTake = picked;
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  title: Text('Alert Time'),
+                  subtitle: Text(alertTime.format(context)),
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: alertTime,
+                    );
+                    if (picked != null && picked != alertTime) {
+                      setState(() {
+                        alertTime = picked;
+                      });
+                    }
+                  },
                 ),
               ],
             ),
@@ -90,15 +165,19 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
             TextButton(
               child: Text('Save'),
               onPressed: () {
-                setState(() {
-                  medications[index] = {
-                    'name': editNameController.text,
-                    'dosage': editDosageController.text,
-                    'time': editTimeController.text,
-                  };
-                  _saveMedications();
-                });
-                Navigator.of(context).pop();
+                if (name.isNotEmpty && dosage.isNotEmpty) {
+                  setState(() {
+                    _reminders.add(MedicationReminder(
+                      name: name,
+                      dosage: dosage,
+                      timeToTake: timeToTake,
+                      alertTime: alertTime,
+                    ));
+                    _saveReminders();  // Ensure reminders are saved after adding
+                  });
+                  Navigator.of(context).pop();
+                  _scheduleAlert(alertTime);
+                }
               },
             ),
           ],
@@ -107,73 +186,131 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
     );
   }
 
-  void _clearInputFields() {
-    nameController.clear();
-    dosageController.clear();
-    timeController.clear();
+  void _scheduleAlert(TimeOfDay alertTime) {
+    // This is a simplified version. In a real app, you'd use a background service or plugin like flutter_local_notifications
+    final now = DateTime.now();
+    final scheduledTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      alertTime.hour,
+      alertTime.minute,
+    );
+    
+    final difference = scheduledTime.difference(now);
+    if (difference.isNegative) {
+      // If the time has already passed today, schedule for tomorrow
+      scheduledTime.add(Duration(days: 1));
+    }
+
+    Future.delayed(difference, () {
+      _playAlertSound();
+    });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Medication Reminders')),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: medications.length,
-              itemBuilder: (context, index) {
-                final medication = medications[index];
-                return ListTile(
-                  title: Text(medication['name'] ?? ''),
-                  subtitle: Text('${medication['dosage']} - ${medication['time']}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit),
-                        onPressed: () => _editMedication(index),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () {
-                          setState(() {
-                            medications.removeAt(index);
-                            _saveMedications();
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
+  void _playAlertSound() async {
+    print("Attempting to play sound: assets/sounds/alert.mp3");
+    try {
+      final player = AudioPlayer();
+      await player.setSource(AssetSource('sounds/alert.mp3'));
+      await player.resume();
+      print("Sound played successfully");
+    } catch (e) {
+      print("Error playing sound: $e");
+    }
+  }
+
+  void _editReminder(int index) {
+    MedicationReminder reminder = _reminders[index];
+    String name = reminder.name;
+    String dosage = reminder.dosage;
+    TimeOfDay timeToTake = reminder.timeToTake;
+    TimeOfDay alertTime = reminder.alertTime;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit Medication Reminder'),
+          content: SingleChildScrollView(
             child: Column(
               children: [
                 TextField(
-                  controller: nameController,
+                  controller: TextEditingController(text: name),
                   decoration: InputDecoration(labelText: 'Medication Name'),
+                  onChanged: (value) => name = value,
                 ),
                 TextField(
-                  controller: dosageController,
+                  controller: TextEditingController(text: dosage),
                   decoration: InputDecoration(labelText: 'Dosage'),
+                  onChanged: (value) => dosage = value,
                 ),
-                TextField(
-                  controller: timeController,
-                  decoration: InputDecoration(labelText: 'Time'),
+                ListTile(
+                  title: Text('Time to Take'),
+                  subtitle: Text(timeToTake.format(context)),
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: timeToTake,
+                    );
+                    if (picked != null && picked != timeToTake) {
+                      setState(() {
+                        timeToTake = picked;
+                      });
+                    }
+                  },
                 ),
-                ElevatedButton(
-                  onPressed: _addMedication,
-                  child: Text('Add Medication'),
+                ListTile(
+                  title: Text('Alert Time'),
+                  subtitle: Text(alertTime.format(context)),
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: alertTime,
+                    );
+                    if (picked != null && picked != alertTime) {
+                      setState(() {
+                        alertTime = picked;
+                      });
+                    }
+                  },
                 ),
               ],
             ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                if (name.isNotEmpty && dosage.isNotEmpty) {
+                  setState(() {
+                    _reminders[index] = MedicationReminder(
+                      name: name,
+                      dosage: dosage,
+                      timeToTake: timeToTake,
+                      alertTime: alertTime,
+                    );
+                    _saveReminders();  // Ensure reminders are saved after editing
+                  });
+                  Navigator.of(context).pop();
+                  _scheduleAlert(alertTime);
+                }
+              },
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  void _deleteReminder(int index) {
+    setState(() {
+      _reminders.removeAt(index);
+      _saveReminders();  // Ensure reminders are saved after deletion
+    });
   }
 }
