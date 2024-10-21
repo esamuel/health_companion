@@ -176,7 +176,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                     _saveReminders();  // Ensure reminders are saved after adding
                   });
                   Navigator.of(context).pop();
-                  _scheduleAlert(alertTime);
+                  _scheduleAlert(alertTime, name, dosage);
                 }
               },
             ),
@@ -186,35 +186,52 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
     );
   }
 
-  void _scheduleAlert(TimeOfDay alertTime) {
-    // This is a simplified version. In a real app, you'd use a background service or plugin like flutter_local_notifications
+  void _scheduleAlert(TimeOfDay alertTime, String medicationName, String dosage) {
     final now = DateTime.now();
-    final scheduledTime = DateTime(
+    DateTime scheduledTime = DateTime(
       now.year,
       now.month,
       now.day,
       alertTime.hour,
       alertTime.minute,
     );
-    
+
     final difference = scheduledTime.difference(now);
     if (difference.isNegative) {
-      // If the time has already passed today, schedule for tomorrow
-      scheduledTime.add(Duration(days: 1));
+      scheduledTime = scheduledTime.add(Duration(days: 1));
     }
 
     Future.delayed(difference, () {
-      _playAlertSound();
+      _playAlertSound(medicationName, dosage);
     });
   }
 
-  void _playAlertSound() async {
+  void _playAlertSound(String medicationName, String dosage) async {
     print("Attempting to play sound: assets/sounds/alert.mp3");
     try {
       final player = AudioPlayer();
       await player.setSource(AssetSource('sounds/alert.mp3'));
       await player.resume();
       print("Sound played successfully");
+
+      // Show dialog with medication information
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Medication Reminder'),
+            content: Text('It\'s time to take your medication: $medicationName, Dosage: $dosage'),
+            actions: <Widget>[
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+              ),
+            ],
+          );
+        },
+      );
     } catch (e) {
       print("Error playing sound: $e");
     }
@@ -297,7 +314,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                     _saveReminders();  // Ensure reminders are saved after editing
                   });
                   Navigator.of(context).pop();
-                  _scheduleAlert(alertTime);
+                  _scheduleAlert(alertTime, name, dosage);
                 }
               },
             ),

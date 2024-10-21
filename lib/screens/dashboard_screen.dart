@@ -3,23 +3,42 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'bmi_tracking_screen.dart';
 import 'vital_signs_history_screen.dart';
+import 'medication_reminder_screen.dart';  // Corrected import statement
 
 class DashboardScreen extends StatefulWidget {
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
   Map<String, String> healthData = {};
-  List<Map<String, String>> medications = [];
+  List<MedicationReminder> medications = [];
   String? gender;
   DateTime? dateOfBirth;
+  List<dynamic> _reminders = [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadHealthData();
     _loadMedications();
+    _loadReminders();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _loadReminders(); // Reload reminders when returning to the app/screen
+      _loadMedications(); // Also reload medications to reflect any changes
+    }
   }
 
   Future<void> _loadHealthData() async {
@@ -49,12 +68,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadMedications() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      medications = (prefs.getStringList('medications') ?? [])
-          .map((item) => Map<String, String>.from(json.decode(item)))
-          .toList();
-    });
+    final prefs = await SharedPreferences.getInstance();
+    final String? remindersJson = prefs.getString('reminders');  // Use the same key as in MedicationReminderScreen
+    if (remindersJson != null) {
+      setState(() {
+        final List<dynamic> jsonDecoded = json.decode(remindersJson);
+        medications = jsonDecoded.map((json) => MedicationReminder.fromJson(json as Map<String, dynamic>)).toList();
+      });
+    }
+  }
+
+  void _loadReminders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? remindersJson = prefs.getString('reminders');
+    if (remindersJson != null) {
+      setState(() {
+        _reminders = json.decode(remindersJson);
+      });
+    }
   }
 
   String _calculateAge(DateTime? dob) {
@@ -270,15 +301,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Expanded(
                       flex: 2,
-                      child: Text(medication['name'] ?? '', style: Theme.of(context).textTheme.bodyLarge),
+                      child: Text(medication.name, style: Theme.of(context).textTheme.bodyLarge),
                     ),
                     Expanded(
                       flex: 1,
-                      child: Text(medication['dosage'] ?? '', style: Theme.of(context).textTheme.bodyMedium),
+                      child: Text(medication.dosage, style: Theme.of(context).textTheme.bodyMedium),
                     ),
                     Expanded(
                       flex: 1,
-                      child: Text(medication['time'] ?? '', style: Theme.of(context).textTheme.bodyMedium),
+                      child: Text('${medication.timeToTake.format(context)}', style: Theme.of(context).textTheme.bodyMedium),
                     ),
                   ],
                 ),

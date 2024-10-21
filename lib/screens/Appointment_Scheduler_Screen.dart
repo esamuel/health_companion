@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:health_companion/config/app_settings.dart';
 
 class Appointment {
   String id;
@@ -144,7 +145,7 @@ class _AppointmentSchedulerScreenState extends State<AppointmentSchedulerScreen>
                 children: [
                   Text('${appointment.category} - ${appointment.dateTime}'),
                   if (appointment.notes.isNotEmpty)
-                    Text(appointment.notes, style: TextStyle(fontStyle: FontStyle.italic)),
+                    Text(appointment.notes, style: TextStyle(fontSize: globalFontSize, fontStyle: FontStyle.italic)),
                 ],
               ),
               trailing: Row(

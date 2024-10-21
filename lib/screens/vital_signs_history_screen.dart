@@ -83,7 +83,7 @@ class _VitalSignsHistoryScreenState extends State<VitalSignsHistoryScreen> {
                           children: [
                             Text(
                               DateFormat('yyyy-MM-dd HH:mm').format(DateTime.parse(item['date'])),
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 4),
                             _buildVitalSignRow('Blood Pressure', item['bloodPressure'] ?? '', prevItem?['bloodPressure'] ?? ''),

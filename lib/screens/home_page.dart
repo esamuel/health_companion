@@ -5,9 +5,10 @@ import 'medication_reminder_screen.dart';
 import 'diet_nutrition_screen.dart';
 import 'activity_tracking_screen.dart';
 import 'appointment_scheduler_screen.dart';
-import 'health_education_screen.dart';
+import 'My_AI_Advisor.dart';  // Updated import
 import 'emergency_contacts_screen.dart';
 import 'settings_screen.dart';
+import 'package:health_companion/config/app_settings.dart';
 
 class HomePage extends StatelessWidget {
   final Function(bool) onThemeChanged;
@@ -35,6 +36,22 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
+      drawer: Drawer(
+        child: ListView(
+          children: <Widget>[
+            ListTile(
+              title: Text('My AI Advisor'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MyAIAdvisorScreen()),
+                );
+              },
+            ),
+            // Other drawer items...
+          ],
+        ),
+      ),
       body: GridView.count(
         crossAxisCount: 2,
         padding: EdgeInsets.all(16.0),
@@ -54,8 +71,8 @@ class HomePage extends StatelessWidget {
               ActivityTrackingScreen()),
           _buildFeatureButton(context, 'Appointments', Icons.event,
               AppointmentSchedulerScreen()),
-          _buildFeatureButton(context, 'Health Education', Icons.school,
-              HealthEducationScreen()),
+          _buildFeatureButton(
+              context, 'My AI Advisor', Icons.school, MyAIAdvisorScreen()),  // Reverted to original icon
           _buildFeatureButton(context, 'Emergency Contacts', Icons.emergency,
               EmergencyContactsScreen()),
         ],
@@ -79,7 +96,7 @@ class HomePage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Icon(icon, size: 40),
+          Icon(icon, size: 40),  // Use Icon widget with IconData
           SizedBox(height: 8),
           Text(title, textAlign: TextAlign.center),
         ],

@@ -33,10 +33,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'Other'
   ];
 
+  // Define globalFontSize as a getter
+  double _fontSize = 16.0;  // Default font size
+
+  double get globalFontSize => _fontSize;
+
+  // Setter for globalFontSize
+  set globalFontSize(double newSize) {
+    setState(() {
+      _fontSize = newSize;
+      _saveFontSize(newSize);  // Save the font size to SharedPreferences
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadFontSize();
   }
 
   Future<void> _loadUserData() async {
@@ -181,86 +195,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void loadFontSize() {
+    // Example: Load font size from user preferences or app settings
+    setState(() {
+      _fontSize = 18.0;  // Example: Loaded font size
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true, // This is the default value
       appBar: AppBar(
         title: Text('Settings'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          _buildSwitchTile(
-            title: 'Dark Mode',
-            value: isDarkMode,
-            onChanged: (value) {
-              setState(() {
-                isDarkMode = value;
-              });
-              widget.onThemeChanged(isDarkMode);
-            },
-          ),
-          _buildSwitchTile(
-            title: 'Use Metric Units',
-            subtitle: useMetricUnits ? 'kg / cm' : 'lb / inch',
-            value: useMetricUnits,
-            onChanged: (value) {
-              setState(() {
-                useMetricUnits = value;
-              });
-            },
-          ),
-          _buildInputField(
-            controller: nameController,
-            label: 'Name',
-          ),
-          _buildDateField(
-            controller: dobController,
-            label: 'Date of Birth',
-            onTap: () => _selectDate(context),
-          ),
-          _buildDropdownField(
-            label: 'Gender',
-            value: gender,
-            items: genderOptions,
-            onChanged: (String? newValue) {
-              if (newValue != null) {
+      body: SingleChildScrollView(
+        child: Column(
+          children: <Widget>[
+            Slider(
+              min: 10.0,
+              max: 24.0,
+              divisions: 14,
+              label: globalFontSize.toStringAsFixed(0),
+              value: globalFontSize,
+              onChanged: (newSize) {
+                globalFontSize = newSize;  // Use the setter here
+              },
+            ),
+            _buildSwitchTile(
+              title: 'Dark Mode',
+              value: isDarkMode,
+              onChanged: (value) {
                 setState(() {
-                  gender = newValue;
+                  isDarkMode = value;
                 });
-              }
-            },
-          ),
-          _buildInputField(
-            controller: weightController,
-            label: 'Weight (${useMetricUnits ? 'kg' : 'lb'})',
-            keyboardType: TextInputType.number,
-          ),
-          _buildInputField(
-            controller: heightController,
-            label: 'Height (${useMetricUnits ? 'cm' : 'inch'})',
-            keyboardType: TextInputType.number,
-          ),
-          _buildInputField(
-            controller: bloodPressureController,
-            label: 'Blood Pressure (e.g., 120/80)',
-          ),
-          _buildInputField(
-            controller: heartRateController,
-            label: 'Heart Rate (BPM)',
-            keyboardType: TextInputType.number,
-          ),
-          _buildInputField(
-            controller: glucoseLevelController,
-            label: 'Blood Glucose (mg/dL)',
-            keyboardType: TextInputType.number,
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _saveUserData,
-            child: Text('Save Settings'),
-          ),
-        ],
+                widget.onThemeChanged(isDarkMode);
+              },
+            ),
+            _buildSwitchTile(
+              title: 'Use Metric Units',
+              subtitle: useMetricUnits ? 'kg / cm' : 'lb / inch',
+              value: useMetricUnits,
+              onChanged: (value) {
+                setState(() {
+                  useMetricUnits = value;
+                });
+              },
+            ),
+            _buildInputField(
+              controller: nameController,
+              label: 'Name',
+            ),
+            _buildDateField(
+              controller: dobController,
+              label: 'Date of Birth',
+              onTap: () => _selectDate(context),
+            ),
+            _buildDropdownField(
+              label: 'Gender',
+              value: gender,
+              items: genderOptions,
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    gender = newValue;
+                  });
+                }
+              },
+            ),
+            _buildInputField(
+              controller: weightController,
+              label: 'Weight (${useMetricUnits ? 'kg' : 'lb'})',
+            ),
+            _buildInputField(
+              controller: heightController,
+              label: 'Height (${useMetricUnits ? 'cm' : 'inch'})',
+            ),
+            _buildInputField(
+              controller: bloodPressureController,
+              label: 'Blood Pressure (e.g., 120/80)',
+            ),
+            _buildInputField(
+              controller: heartRateController,
+              label: 'Heart Rate (BPM)',
+              keyboardType: TextInputType.number, // Explicitly setting keyboardType for numeric input
+            ),
+            _buildInputField(
+              controller: glucoseLevelController,
+              label: 'Blood Glucose (mg/dL)',
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _saveUserData,
+              child: Text('Save Settings'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -284,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
-    TextInputType keyboardType = TextInputType.text,
+    TextInputType keyboardType = TextInputType.text, // Default keyboardType
   }) {
     return Card(
       child: Padding(
@@ -295,7 +326,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             labelText: label,
             border: OutlineInputBorder(),
           ),
-          keyboardType: keyboardType,
+          keyboardType: keyboardType, // Correctly passing keyboardType to TextField
         ),
       ),
     );
@@ -360,5 +391,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     heartRateController.dispose();
     glucoseLevelController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveFontSize(double fontSize) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('fontSize', fontSize);
+  }
+
+  Future<void> _loadFontSize() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    double fontSize = prefs.getDouble('fontSize') ?? 16.0;  // Default to 16.0 if not set
+    setState(() {
+      _fontSize = fontSize;
+    });
   }
 }

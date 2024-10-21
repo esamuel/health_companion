@@ -79,11 +79,11 @@ class _FastingTimerScreenState extends State<FastingTimerScreen> {
             if (_startFastingTime != null && _endFastingTime != null) ...[
               Text(
                 'Start Fasting: ${_startFastingTime!.hour.toString().padLeft(2, '0')}:${_startFastingTime!.minute.toString().padLeft(2, '0')}',
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(fontSize: globalFontSize),
               ),
               Text(
                 'End Fasting: ${_endFastingTime!.hour.toString().padLeft(2, '0')}:${_endFastingTime!.minute.toString().padLeft(2, '0')}',
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(fontSize: globalFontSize),
               ),
               SizedBox(height: 20),
               Text(
