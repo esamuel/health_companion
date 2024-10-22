@@ -38,9 +38,11 @@ class _HealthCompanionAppState extends State<HealthCompanionApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'Health Companion',
+      debugShowCheckedModeBanner: false,
       theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: HomePage(
         onThemeChanged: (value) {
           setState(() {
@@ -58,9 +60,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'My Application',
+      debugShowCheckedModeBanner: false,
       home: HomePage(onThemeChanged: (bool isDarkMode) {
         // You can handle theme change here if needed
       }),  // Use HomePage here
     );
   }
 }
+

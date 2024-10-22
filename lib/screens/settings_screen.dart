@@ -229,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 setState(() {
                   isDarkMode = value;
                 });
-                widget.onThemeChanged(isDarkMode);
+                widget.onThemeChanged(isDarkMode);  // Ensure this is correctly updating the app's theme
               },
             ),
             _buildSwitchTile(

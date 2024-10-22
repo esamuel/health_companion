@@ -197,7 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         title: Text('Health Dashboard'),
         actions: [
           IconButton(
-            icon: Icon(Icons.show_chart),
+            icon: Icon(Icons.show_chart, color: Colors.purple), // Changed color to purple
             onPressed: () {
               Navigator.push(
                 context,
@@ -207,7 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             tooltip: 'BMI Tracking',
           ),
           IconButton(
-            icon: Icon(Icons.history),
+            icon: Icon(Icons.history, color: Colors.orange), // Changed color to orange
             onPressed: () {
               Navigator.push(
                 context,
