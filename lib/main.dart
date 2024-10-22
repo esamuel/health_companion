@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'screens/home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(HealthCompanionApp());
+void main() {
+  runApp(MyApp());
 }
 
 class HealthCompanionApp extends StatefulWidget {
@@ -49,6 +49,18 @@ class _HealthCompanionAppState extends State<HealthCompanionApp> {
           });
         },
       ),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'My Application',
+      home: HomePage(onThemeChanged: (bool isDarkMode) {
+        // You can handle theme change here if needed
+      }),  // Use HomePage here
     );
   }
 }
