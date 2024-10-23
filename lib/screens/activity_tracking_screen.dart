@@ -7,6 +7,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 class ActivityTrackingScreen extends StatefulWidget {
   @override
@@ -19,7 +21,8 @@ class _ActivityTrackingScreenState extends State<ActivityTrackingScreen> with Wi
   int _waterIntake = 0;
   late Stream<StepCount> _stepCountStream;
   late Stream<AccelerometerEvent> _accelerometerStream;
-  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
   Timer? _waterReminderTimer;
   DateTime _lastMovementTime = DateTime.now();
   bool _isSleeping = false;
@@ -32,10 +35,11 @@ class _ActivityTrackingScreenState extends State<ActivityTrackingScreen> with Wi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     initPlatformState();
-    initNotifications();
+    initializeNotifications();
     loadData();
     startWaterReminder();
     startPeriodicSave();
+    tz.initializeTimeZones();
   }
 
   @override
@@ -88,13 +92,23 @@ class _ActivityTrackingScreenState extends State<ActivityTrackingScreen> with Wi
     });
   }
 
-  void initNotifications() {
-    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    var initializationSettingsAndroid = AndroidInitializationSettings('app_icon');
-    var initializationSettingsIOS = IOSInitializationSettings();
-    var initializationSettings = InitializationSettings(
-        android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
-    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  void initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('app_icon');
+
+    final DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+      requestSoundPermission: false,
+      requestBadgePermission: false,
+      requestAlertPermission: false,
+    );
+
+    final InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   void startWaterReminder() {
@@ -112,9 +126,9 @@ class _ActivityTrackingScreenState extends State<ActivityTrackingScreen> with Wi
       importance: Importance.max,
       priority: Priority.high,
     );
-    var iOSPlatformChannelSpecifics = IOSNotificationDetails();
+    var darwinPlatformChannelSpecifics = DarwinNotificationDetails();
     var platformChannelSpecifics = NotificationDetails(
-        android: androidPlatformChannelSpecifics, iOS: iOSPlatformChannelSpecifics);
+        android: androidPlatformChannelSpecifics, iOS: darwinPlatformChannelSpecifics);
     await flutterLocalNotificationsPlugin.show(
       0,
       'Water Reminder',

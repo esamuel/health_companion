@@ -1,30 +1,40 @@
+// lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
+import '../config/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Function(bool) onThemeChanged;
 
-  SettingsScreen({required this.onThemeChanged});
+  const SettingsScreen({Key? key, required this.onThemeChanged}) : super(key: key);
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // Theme and Accessibility Settings
   bool isDarkMode = false;
   bool useMetricUnits = true;
-  String gender = 'Not Specified';
-  TextEditingController nameController = TextEditingController();
-  TextEditingController dobController = TextEditingController();
-  TextEditingController weightController = TextEditingController();
-  TextEditingController heightController = TextEditingController();
-  TextEditingController bloodPressureController = TextEditingController();
-  TextEditingController heartRateController = TextEditingController();
-  TextEditingController glucoseLevelController = TextEditingController();
+  bool isHighContrast = false;
+  double currentFontSize = AppTheme.defaultFontSize;
 
+  // Personal Information Controllers
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController dobController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
+  final TextEditingController heightController = TextEditingController();
+  
+  // Medical Information Controllers
+  final TextEditingController bloodPressureController = TextEditingController();
+  final TextEditingController heartRateController = TextEditingController();
+  final TextEditingController glucoseLevelController = TextEditingController();
+
+  // Other State Variables
+  String gender = 'Not Specified';
   DateTime? selectedDate;
+  bool showPassword = false;
 
   final List<String> genderOptions = [
     'Not Specified',
@@ -33,42 +43,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'Other'
   ];
 
-  // Define globalFontSize as a getter
-  double _fontSize = 16.0;  // Default font size
-
-  double get globalFontSize => _fontSize;
-
-  // Setter for globalFontSize
-  set globalFontSize(double newSize) {
-    setState(() {
-      _fontSize = newSize;
-      _saveFontSize(newSize);  // Save the font size to SharedPreferences
-    });
-  }
-
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _loadFontSize();
+    _loadSettings();
   }
 
-  Future<void> _loadUserData() async {
+  Future<void> _loadSettings() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
+      
       setState(() {
+        // Load Theme Settings
         isDarkMode = prefs.getBool('isDarkMode') ?? false;
         useMetricUnits = prefs.getBool('useMetricUnits') ?? true;
-        gender = prefs.getString('gender') ?? 'Not Specified';
-        if (!genderOptions.contains(gender)) {
-          gender = 'Not Specified';
-        }
+        isHighContrast = prefs.getBool('highContrast') ?? false;
+        currentFontSize = prefs.getDouble('fontSize') ?? AppTheme.defaultFontSize;
+        
+        // Load Personal Information
         nameController.text = prefs.getString('name') ?? '';
+        gender = prefs.getString('gender') ?? 'Not Specified';
+        
         String? dobString = prefs.getString('dob');
         if (dobString != null) {
           selectedDate = DateTime.parse(dobString);
           dobController.text = DateFormat('yyyy-MM-dd').format(selectedDate!);
         }
+        
+        // Load Medical Information
         weightController.text = prefs.getString('weight') ?? '';
         heightController.text = prefs.getString('height') ?? '';
         bloodPressureController.text = prefs.getString('bloodPressure') ?? '';
@@ -76,185 +78,230 @@ class _SettingsScreenState extends State<SettingsScreen> {
         glucoseLevelController.text = prefs.getString('glucoseLevel') ?? '';
       });
     } catch (e) {
-      print('Error loading user data: $e');
+      print('Error loading settings: $e');
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading settings. Please try again.')),
+        );
+      }
     }
   }
 
-  Future<void> _saveUserData() async {
+  Future<void> _saveSettings() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Save Theme Settings
       await prefs.setBool('isDarkMode', isDarkMode);
       await prefs.setBool('useMetricUnits', useMetricUnits);
-      await prefs.setString('gender', gender);
+      await prefs.setBool('highContrast', isHighContrast);
+      await prefs.setDouble('fontSize', currentFontSize);
+      
+      // Save Personal Information
       await prefs.setString('name', nameController.text);
+      await prefs.setString('gender', gender);
       if (selectedDate != null) {
         await prefs.setString('dob', selectedDate!.toIso8601String());
       }
+      
+      // Save Medical Information
       await prefs.setString('weight', weightController.text);
       await prefs.setString('height', heightController.text);
       await prefs.setString('bloodPressure', bloodPressureController.text);
       await prefs.setString('heartRate', heartRateController.text);
       await prefs.setString('glucoseLevel', glucoseLevelController.text);
 
-      // Calculate and save BMI
-      if (weightController.text.isNotEmpty &&
-          heightController.text.isNotEmpty) {
-        double? weight = double.tryParse(weightController.text);
-        double? height = double.tryParse(heightController.text);
-        if (weight != null && height != null) {
-          if (!useMetricUnits) {
-            // Convert pounds to kg and inches to meters
-            weight = weight * 0.453592;
-            height = height * 0.0254;
-          } else {
-            // Convert cm to meters
-            height = height / 100;
-          }
-          double bmi = weight / (height * height);
-          await prefs.setDouble('bmi', bmi);
-
-          // Save BMI history
-          List<String> bmiHistory = prefs.getStringList('bmiHistory') ?? [];
-          bmiHistory.add(bmi.toStringAsFixed(1));
-          await prefs.setStringList('bmiHistory', bmiHistory);
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Settings saved successfully')),
+        );
       }
-
-      // Save vital signs history
-      await _saveVitalSignsHistory(prefs);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Settings saved successfully')),
-      );
     } catch (e) {
-      print('Error saving user data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving settings. Please try again.')),
-      );
+      print('Error saving settings: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving settings. Please try again.')),
+        );
+      }
     }
   }
 
- Future<void> _saveVitalSignsHistory(SharedPreferences prefs) async {
-    String bloodPressure = bloodPressureController.text;
-    String heartRate = heartRateController.text;
-    String bloodGlucose = glucoseLevelController.text;
-
-    // Get the last saved values
-    String lastBloodPressure = prefs.getString('lastBloodPressure') ?? '';
-    String lastHeartRate = prefs.getString('lastHeartRate') ?? '';
-    String lastBloodGlucose = prefs.getString('lastBloodGlucose') ?? '';
-
-    // Check if any of the values have changed
-    bool hasChanged = bloodPressure != lastBloodPressure ||
-                      heartRate != lastHeartRate ||
-                      bloodGlucose != lastBloodGlucose;
-
-    print('Has vital signs changed: $hasChanged'); // Debug print
-
-    if (hasChanged) {
-      List<Map<String, dynamic>> history = List<Map<String, dynamic>>.from(
-        json.decode(prefs.getString('vitalSignsHistory') ?? '[]')
-      );
-
-      Map<String, dynamic> newEntry = {
-        'date': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
-        'bloodPressure': bloodPressure,
-        'heartRate': heartRate,
-        'bloodGlucose': bloodGlucose,
-      };
-
-      history.add(newEntry);
-
-      print('New vital signs entry: $newEntry'); // Debug print
-      print('Updated history: $history'); // Debug print
-
-      await prefs.setString('vitalSignsHistory', json.encode(history));
-
-      // Update the last saved values
-      await prefs.setString('lastBloodPressure', bloodPressure);
-      await prefs.setString('lastHeartRate', heartRate);
-      await prefs.setString('lastBloodGlucose', bloodGlucose);
-
-      print('Vital signs history saved successfully'); // Debug print
-    } else {
-      print('No changes in vital signs, history not updated'); // Debug print
-    }
-  }
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-        dobController.text = DateFormat('yyyy-MM-dd').format(selectedDate!);
-      });
-    }
-  }
-
-  void loadFontSize() {
-    // Example: Load font size from user preferences or app settings
-    setState(() {
-      _fontSize = 18.0;  // Example: Loaded font size
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true, // This is the default value
-      appBar: AppBar(
-        title: Text('Settings'),
-      ),
-      body: SingleChildScrollView(
+  Widget _buildAccessibilitySettings() {
+    return Card(
+      margin: EdgeInsets.all(8.0),
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
         child: Column(
-          children: <Widget>[
-            Slider(
-              min: 10.0,
-              max: 24.0,
-              divisions: 14,
-              label: globalFontSize.toStringAsFixed(0),
-              value: globalFontSize,
-              onChanged: (newSize) {
-                globalFontSize = newSize;  // Use the setter here
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Accessibility Settings',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: currentFontSize * 1.2,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // Font Size Controls
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Text Size',
+                  style: TextStyle(fontSize: currentFontSize),
+                ),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text('A', style: TextStyle(fontSize: 14)),
+                    Expanded(
+                      child: Slider(
+                        value: currentFontSize,
+                        min: AppTheme.minFontSize,
+                        max: AppTheme.maxFontSize,
+                        divisions: 7,
+                        label: currentFontSize.round().toString(),
+                        onChanged: (value) {
+                          setState(() {
+                            currentFontSize = value;
+                          });
+                        },
+                      ),
+                    ),
+                    Text('A', style: TextStyle(fontSize: 28)),
+                  ],
+                ),
+                // Preview Text
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Preview Text - This is how text will appear',
+                    style: TextStyle(fontSize: currentFontSize),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            
+            // High Contrast Mode
+            SwitchListTile(
+              title: Text(
+                'High Contrast Mode',
+                style: TextStyle(fontSize: currentFontSize),
+              ),
+              subtitle: Text(
+                'Increases contrast for better visibility',
+                style: TextStyle(fontSize: currentFontSize * 0.8),
+              ),
+              value: isHighContrast,
+              onChanged: (bool value) {
+                setState(() {
+                  isHighContrast = value;
+                });
               },
             ),
-            _buildSwitchTile(
-              title: 'Dark Mode',
+
+            // Dark Mode
+            SwitchListTile(
+              title: Text(
+                'Dark Mode',
+                style: TextStyle(fontSize: currentFontSize),
+              ),
+              subtitle: Text(
+                'Use dark theme for reduced eye strain',
+                style: TextStyle(fontSize: currentFontSize * 0.8),
+              ),
               value: isDarkMode,
-              onChanged: (value) {
+              onChanged: (bool value) {
                 setState(() {
                   isDarkMode = value;
                 });
-                widget.onThemeChanged(isDarkMode);  // Ensure this is correctly updating the app's theme
+                widget.onThemeChanged(value);
               },
             ),
-            _buildSwitchTile(
-              title: 'Use Metric Units',
-              subtitle: useMetricUnits ? 'kg / cm' : 'lb / inch',
+
+            // Measurement Units
+            SwitchListTile(
+              title: Text(
+                'Use Metric Units',
+                style: TextStyle(fontSize: currentFontSize),
+              ),
+              subtitle: Text(
+                useMetricUnits ? 'Using: kg / cm' : 'Using: lb / inch',
+                style: TextStyle(fontSize: currentFontSize * 0.8),
+              ),
               value: useMetricUnits,
-              onChanged: (value) {
+              onChanged: (bool value) {
                 setState(() {
                   useMetricUnits = value;
                 });
               },
             ),
-            _buildInputField(
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonalInformationSettings() {
+    return Card(
+      margin: EdgeInsets.all(8.0),
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Personal Information',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: currentFontSize * 1.2,
+              ),
+            ),
+            SizedBox(height: 16),
+
+            // Name Field
+            _buildTextField(
               controller: nameController,
-              label: 'Name',
+              label: 'Full Name',
+              icon: Icons.person,
             ),
-            _buildDateField(
-              controller: dobController,
-              label: 'Date of Birth',
+            SizedBox(height: 16),
+
+            // Date of Birth Field
+            GestureDetector(
               onTap: () => _selectDate(context),
+              child: AbsorbPointer(
+                child: _buildTextField(
+                  controller: dobController,
+                  label: 'Date of Birth',
+                  icon: Icons.calendar_today,
+                ),
+              ),
             ),
-            _buildDropdownField(
-              label: 'Gender',
+            SizedBox(height: 16),
+
+            // Gender Selection
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                labelText: 'Gender',
+                labelStyle: TextStyle(fontSize: currentFontSize),
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.people),
+                contentPadding: EdgeInsets.all(16),
+              ),
               value: gender,
-              items: genderOptions,
+              style: TextStyle(fontSize: currentFontSize, color: Theme.of(context).textTheme.bodyLarge?.color),
+              items: genderOptions.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
               onChanged: (String? newValue) {
                 if (newValue != null) {
                   setState(() {
@@ -263,146 +310,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
               },
             ),
-            _buildInputField(
-              controller: weightController,
-              label: 'Weight (${useMetricUnits ? 'kg' : 'lb'})',
-            ),
-            _buildInputField(
-              controller: heightController,
-              label: 'Height (${useMetricUnits ? 'cm' : 'inch'})',
-            ),
-            _buildInputField(
-              controller: bloodPressureController,
-              label: 'Blood Pressure (e.g., 120/80)',
-            ),
-            _buildInputField(
-              controller: heartRateController,
-              label: 'Heart Rate (BPM)',
-              keyboardType: TextInputType.number, // Explicitly setting keyboardType for numeric input
-            ),
-            _buildInputField(
-              controller: glucoseLevelController,
-              label: 'Blood Glucose (mg/dL)',
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _saveUserData,
-              child: Text('Save Settings'),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSwitchTile({
-    required String title,
-    String? subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
-    return Card(
-      child: SwitchListTile(
-        title: Text(title),
-        subtitle: subtitle != null ? Text(subtitle) : null,
-        value: value,
-        onChanged: onChanged,
-      ),
-    );
-  }
-
-  Widget _buildInputField({
+  Widget _buildTextField({
     required TextEditingController controller,
     required String label,
-    TextInputType keyboardType = TextInputType.text, // Default keyboardType
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
   }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: label,
-            border: OutlineInputBorder(),
-          ),
-          keyboardType: keyboardType, // Correctly passing keyboardType to TextField
-        ),
+    return TextField(
+      controller: controller,
+      style: TextStyle(fontSize: currentFontSize),
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(fontSize: currentFontSize),
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(icon),
+        contentPadding: EdgeInsets.all(16),
       ),
     );
   }
 
-  Widget _buildDateField({
-    required TextEditingController controller,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: label,
-            border: OutlineInputBorder(),
-            suffixIcon: Icon(Icons.calendar_today),
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            textTheme: TextTheme(
+              bodyLarge: TextStyle(fontSize: currentFontSize),
+              bodyMedium: TextStyle(fontSize: currentFontSize),
+            ),
           ),
-          readOnly: true,
-          onTap: onTap,
-        ),
-      ),
+          child: child!,
+        );
+      },
     );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required Function(String?) onChanged,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: DropdownButtonFormField<String>(
-          decoration: InputDecoration(
-            labelText: label,
-            border: OutlineInputBorder(),
-          ),
-          value: value,
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
+    
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+        dobController.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
+  } 
 
   @override
-  void dispose() {
-    nameController.dispose();
-    dobController.dispose();
-    weightController.dispose();
-    heightController.dispose();
-    bloodPressureController.dispose();
-    heartRateController.dispose();
-    glucoseLevelController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveFontSize(double fontSize) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('fontSize', fontSize);
-  }
-
-  Future<void> _loadFontSize() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    double fontSize = prefs.getDouble('fontSize') ?? 16.0;  // Default to 16.0 if not set
-    setState(() {
-      _fontSize = fontSize;
-    });
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Settings', style: TextStyle(fontSize: currentFontSize)),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAccessibilitySettings(),
+              SizedBox(height: 16),
+              _buildPersonalInformationSettings(),
+              SizedBox(height: 16),
+              ElevatedButton(
+                child: Text('Save Settings', style: TextStyle(fontSize: currentFontSize)),
+                onPressed: _saveSettings,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
