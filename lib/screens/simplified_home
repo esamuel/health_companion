@@ -1,0 +1,248 @@
+// lib/screens/simplified_home.dart
+
+import 'package:flutter/material.dart';
+import 'package:health_companion/screens/emergency_contacts_screen.dart';
+import 'package:health_companion/screens/medication_reminder_screen.dart';
+import 'package:health_companion/screens/health_tracking_screen.dart';
+import 'package:health_companion/screens/My_AI_Advisor.dart';
+
+class SimplifiedHome extends StatelessWidget {
+  final double? currentFontSize;
+  final bool? isHighContrast;
+
+  const SimplifiedHome({
+    Key? key,
+    this.currentFontSize,
+    this.isHighContrast,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Emergency Section
+          _buildEmergencySection(context),
+          const SizedBox(height: 24),
+          
+          // Main Features
+          Expanded(
+            child: _buildMainFeatures(context),
+          ),
+          
+          // Quick Actions Footer
+          _buildQuickActionsFooter(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmergencySection(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => EmergencyContactsScreen()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red.shade100,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red, width: 2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.emergency,
+              size: currentFontSize != null ? currentFontSize! * 2 : 48,
+              color: Colors.red,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              'Emergency\nHelp',
+              style: TextStyle(
+                fontSize: currentFontSize != null ? currentFontSize! * 1.5 : 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+                height: 1.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainFeatures(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      mainAxisSpacing: 20,
+      crossAxisSpacing: 20,
+      childAspectRatio: 0.85,
+      children: [
+        _buildFeatureCard(
+          context,
+          'Medications',
+          Icons.medical_services,
+          Colors.blue,
+          MedicationReminderScreen(),
+          'Take your\nmedicines',
+        ),
+        _buildFeatureCard(
+          context,
+          'Health\nCheck',
+          Icons.favorite,
+          Colors.green,
+          HealthTrackingScreen(),
+          'Track your\nhealth',
+        ),
+        _buildFeatureCard(
+          context,
+          'Ask for\nHelp',
+          Icons.question_answer,
+          Colors.purple,
+          MyAIAdvisorScreen(),
+          'Get answers',
+        ),
+        _buildFeatureCard(
+          context,
+          'Daily\nRoutine',
+          Icons.calendar_today,
+          Colors.orange,
+          MedicationReminderScreen(), // Replace with appropriate screen
+          'Your tasks',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeatureCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    Widget screen,
+    String subtitle,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => screen),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withOpacity(0.5),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: currentFontSize != null ? currentFontSize! * 2.5 : 64,
+              color: color,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: currentFontSize != null ? currentFontSize! * 1.2 : 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: currentFontSize != null ? currentFontSize! * 0.8 : 16,
+                color: color.withOpacity(0.8),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsFooter(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildQuickActionButton(
+            context,
+            'Settings',
+            Icons.settings,
+            () {
+              // Navigate to settings
+            },
+          ),
+          _buildQuickActionButton(
+            context,
+            'Help',
+            Icons.help,
+            () {
+              // Show help dialog
+            },
+          ),
+          _buildQuickActionButton(
+            context,
+            'Family',
+            Icons.people,
+            () {
+              // Navigate to family contacts
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: currentFontSize != null ? currentFontSize! * 1.5 : 32,
+              color: Theme.of(context).primaryColor,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: currentFontSize != null ? currentFontSize! * 0.8 : 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
